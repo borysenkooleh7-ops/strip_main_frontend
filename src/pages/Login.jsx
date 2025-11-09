@@ -29,6 +29,9 @@ const Login = () => {
       if (result.success) {
         toast.success('Login successful!');
         navigate('/dashboard');
+      } else if (result.requiresVerification) {
+        toast.error(result.error || 'Please verify your email first');
+        navigate(`/verify-email?email=${encodeURIComponent(result.email || formData.email)}`);
       } else {
         toast.error(result.error || 'Login failed');
       }

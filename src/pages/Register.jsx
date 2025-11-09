@@ -29,8 +29,15 @@ const Register = () => {
       const result = await register(formData);
 
       if (result.success) {
-        toast.success('Registration successful!');
-        navigate('/dashboard');
+        // Check if verification is required
+        if (result.data && result.data.requiresVerification) {
+          toast.success('Registration successful! Please check your email for verification code.');
+          navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+        } else {
+          // Old flow - direct login (backwards compatible)
+          toast.success('Registration successful!');
+          navigate('/dashboard');
+        }
       } else {
         toast.error(result.error || 'Registration failed');
       }

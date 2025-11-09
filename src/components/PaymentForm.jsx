@@ -7,7 +7,14 @@ import { formatCurrency, formatCrypto } from '../utils/formatters';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// Initialize Stripe with public key
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+
+if (!stripePublicKey) {
+  console.error('Stripe publishable key is missing. Please set VITE_STRIPE_PUBLIC_KEY in your environment variables.');
+}
+
+const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
 
 const CARD_ELEMENT_OPTIONS = {
   style: {
@@ -35,6 +42,20 @@ const PaymentFormInner = () => {
   const [conversion, setConversion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  // Check if Stripe is configured
+  if (!stripePublicKey) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="card bg-red-50 border-2 border-red-200">
+          <h2 className="text-2xl font-bold mb-4 text-red-800">Configuration Error</h2>
+          <p className="text-red-700">
+            Stripe payment system is not configured. Please contact the administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch conversion rate when amount changes
   useEffect(() => {

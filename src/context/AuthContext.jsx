@@ -57,9 +57,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (email, password, skipApiCall = false, providedData = null) => {
     try {
+      // If data is provided (from email verification), use it directly
+      if (skipApiCall && providedData) {
+        const { user, token } = providedData;
+        setUser(user);
+        setToken(token);
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        return { success: true, user };
+      }
+
       const response = await authAPI.login({ email, password });
+
+      // Check if verification is required
+      if (response.requiresVerification) {
+        return {
+          success: false,
+          error: response.message || 'Please verify your email',
+          requiresVerification: true,
+          email: response.email || email
+        };
+      }
+
       const { user, token } = response.data;
 
       setUser(user);
@@ -69,6 +90,15 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, user };
     } catch (error) {
+      // Check if error response indicates verification is needed
+      if (error.requiresVerification) {
+        return {
+          success: false,
+          error: error.message || 'Please verify your email',
+          requiresVerification: true,
+          email: error.email
+        };
+      }
       return { success: false, error: error.message };
     }
   };
@@ -76,6 +106,17 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await authAPI.register(userData);
+
+      // Check if verification is required (new flow)
+      if (response.data && response.data.requiresVerification) {
+        return {
+          success: true,
+          data: response.data,
+          requiresVerification: true
+        };
+      }
+
+      // Old flow - direct login (backwards compatible)
       const { user, token } = response.data;
 
       setUser(user);
