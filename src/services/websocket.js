@@ -12,8 +12,12 @@ class WebSocketService {
     if (this.socket?.connected) return;
 
     this.socket = io(SOCKET_URL, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
       autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      withCredentials: true
     });
 
     this.socket.on('connect', () => {
