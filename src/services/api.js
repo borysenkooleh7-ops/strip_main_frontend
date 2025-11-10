@@ -151,8 +151,14 @@ export const authAPI = {
 
 // Payment API
 export const paymentAPI = {
+  // Stripe endpoints (legacy)
   getConversionRate: (amount) => api.get('/payments/conversion-rate', { params: { amount } }),
   createPaymentIntent: (data) => api.post('/payments/create-intent', data),
+
+  // Transak endpoints (on-ramp)
+  createTransakOrder: (data) => api.post('/payments/transak/create-order', data),
+  updateTransakOrderStatus: (orderId, data) => api.patch(`/payments/transak/order/${orderId}`, data),
+  getTransakOrder: (orderId) => api.get(`/payments/transak/order/${orderId}`),
 };
 
 // Transaction API

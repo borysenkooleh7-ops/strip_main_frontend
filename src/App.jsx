@@ -8,7 +8,8 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './components/Dashboard';
-import PaymentForm from './components/PaymentForm';
+import PaymentForm from './components/PaymentForm'; // Legacy Stripe
+import PaymentFormTransak from './components/PaymentFormTransak'; // New Transak On-Ramp
 import TransactionStatus from './components/TransactionStatus';
 import TransactionHistory from './components/TransactionHistory';
 
@@ -64,6 +65,17 @@ function App() {
           />
           <Route
             path="/payment"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <PaymentFormTransak />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Legacy Stripe payment route (backup) */}
+          <Route
+            path="/payment-stripe"
             element={
               <ProtectedRoute>
                 <Layout>
