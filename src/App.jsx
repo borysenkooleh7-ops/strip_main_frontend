@@ -7,7 +7,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import VerifyEmail from './pages/VerifyEmail';
+// import VerifyEmail from './pages/VerifyEmail'; // REMOVED - Email verification disabled
 import Dashboard from './components/Dashboard';
 import PaymentForm from './components/PaymentForm';
 import TransactionStatus from './components/TransactionStatus';
@@ -49,7 +49,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
+          {/* <Route path="/verify-email" element={<VerifyEmail />} /> */}
+          {/* REMOVED - Email verification disabled, users auto-login after registration */}
 
           {/* Protected Routes */}
           <Route

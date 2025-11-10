@@ -30,21 +30,16 @@ const Register = () => {
       const result = await register(formData);
 
       if (result.success) {
-        // Check if verification is required
-        if (result.data && result.data.requiresVerification) {
-          toast.success('Registration successful! Please check your email for verification code.');
-          navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
-        } else {
-          // Old flow - direct login (backwards compatible)
-          toast.success('Registration successful!');
-          navigate('/dashboard');
-        }
+        // Email verification DISABLED - Users are auto-logged in after registration
+        console.log('✅ Registration successful, auto-login enabled');
+        toast.success('Registration successful! Welcome to USDT Payment!');
+        navigate('/dashboard');
       } else {
-        console.error('Registration failed with error:', result.error);
+        console.error('❌ Registration failed:', result.error);
         toast.error(result.error || 'Registration failed');
       }
     } catch (error) {
-      console.error('Unexpected error during registration:', error);
+      console.error('❌ Unexpected registration error:', error);
       toast.error(error?.message || 'An unexpected error occurred during registration');
     } finally {
       setLoading(false);

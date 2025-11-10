@@ -78,16 +78,8 @@ export const AuthProvider = ({ children }) => {
       console.log('🔐 Attempting login for:', email);
       const response = await authAPI.login({ email, password });
 
-      // Check if verification is required
-      if (response.requiresVerification) {
-        console.warn('📧 Email verification required');
-        return {
-          success: false,
-          error: response.message || 'Please verify your email',
-          requiresVerification: true,
-          email: response.email || email
-        };
-      }
+      // Email verification DISABLED - Users can login without verification
+      // Backend auto-verifies all users during registration
 
       const { user, token } = response.data;
 
@@ -101,15 +93,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('❌ Login failed:', error);
 
-      // Check if error response indicates verification is needed
-      if (error.requiresVerification) {
-        return {
-          success: false,
-          error: error.message || 'Please verify your email',
-          requiresVerification: true,
-          email: error.email
-        };
-      }
+      // Email verification DISABLED - No verification error handling needed
 
       // Provide specific error messages for different error types
       let errorMessage = error.message || 'Login failed. Please try again.';
@@ -129,17 +113,9 @@ export const AuthProvider = ({ children }) => {
       console.log('📝 Attempting registration for:', userData.email);
       const response = await authAPI.register(userData);
 
-      // Check if verification is required (new flow)
-      if (response.data && response.data.requiresVerification) {
-        console.log('📧 Email verification required for new user');
-        return {
-          success: true,
-          data: response.data,
-          requiresVerification: true
-        };
-      }
+      // Email verification DISABLED - Users are auto-logged in after registration
+      // Backend returns user and token immediately
 
-      // Old flow - direct login (backwards compatible)
       const { user, token } = response.data;
 
       setUser(user);

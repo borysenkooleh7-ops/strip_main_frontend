@@ -28,17 +28,16 @@ const Login = () => {
       const result = await login(formData.email, formData.password);
 
       if (result.success) {
+        console.log('✅ Login successful');
         toast.success('Login successful!');
         navigate('/dashboard');
-      } else if (result.requiresVerification) {
-        toast.error(result.error || 'Please verify your email first');
-        navigate(`/verify-email?email=${encodeURIComponent(result.email || formData.email)}`);
       } else {
-        console.error('Login failed with error:', result.error);
-        toast.error(result.error || 'Login failed');
+        // Email verification DISABLED - No verification redirect
+        console.error('❌ Login failed:', result.error);
+        toast.error(result.error || 'Login failed. Please check your credentials.');
       }
     } catch (error) {
-      console.error('Unexpected error during login:', error);
+      console.error('❌ Unexpected login error:', error);
       toast.error(error?.message || 'An unexpected error occurred during login');
     } finally {
       setLoading(false);
