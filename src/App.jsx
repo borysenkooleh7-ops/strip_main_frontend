@@ -7,13 +7,12 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-// import VerifyEmail from './pages/VerifyEmail'; // REMOVED - Email verification disabled
 import Dashboard from './components/Dashboard';
 import PaymentForm from './components/PaymentForm';
 import TransactionStatus from './components/TransactionStatus';
 import TransactionHistory from './components/TransactionHistory';
 
-// Protected Route Component
+
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
