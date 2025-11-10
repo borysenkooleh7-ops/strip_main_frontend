@@ -26,6 +26,7 @@ const Register = () => {
     setLoading(true);
 
     try {
+      console.log('📋 Registration form submitted');
       const result = await register(formData);
 
       if (result.success) {
@@ -39,10 +40,12 @@ const Register = () => {
           navigate('/dashboard');
         }
       } else {
+        console.error('Registration failed with error:', result.error);
         toast.error(result.error || 'Registration failed');
       }
     } catch (error) {
-      toast.error('An error occurred during registration');
+      console.error('Unexpected error during registration:', error);
+      toast.error(error?.message || 'An unexpected error occurred during registration');
     } finally {
       setLoading(false);
     }

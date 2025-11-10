@@ -46,12 +46,18 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
+      console.log('👤 Fetching user profile...');
       const response = await authAPI.getMe();
       setUser(response.data.user);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      console.log('✅ User profile loaded');
     } catch (error) {
-      console.error('Failed to fetch user:', error);
-      logout();
+      console.error('❌ Failed to fetch user:', error);
+
+      // Don't logout on network/timeout errors, only on auth errors
+      if (!error.isTimeout && !error.isNetworkError) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
@@ -69,10 +75,12 @@ export const AuthProvider = ({ children }) => {
         return { success: true, user };
       }
 
+      console.log('🔐 Attempting login for:', email);
       const response = await authAPI.login({ email, password });
 
       // Check if verification is required
       if (response.requiresVerification) {
+        console.warn('📧 Email verification required');
         return {
           success: false,
           error: response.message || 'Please verify your email',
@@ -88,8 +96,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
+      console.log('✅ Login successful for user:', user.email);
       return { success: true, user };
     } catch (error) {
+      console.error('❌ Login failed:', error);
+
       // Check if error response indicates verification is needed
       if (error.requiresVerification) {
         return {
@@ -99,16 +110,28 @@ export const AuthProvider = ({ children }) => {
           email: error.email
         };
       }
-      return { success: false, error: error.message };
+
+      // Provide specific error messages for different error types
+      let errorMessage = error.message || 'Login failed. Please try again.';
+
+      if (error.isTimeout) {
+        errorMessage = 'Server is taking too long to respond. Please wait a moment and try again.';
+      } else if (error.isNetworkError) {
+        errorMessage = 'Cannot connect to server. Please check your internet connection.';
+      }
+
+      return { success: false, error: errorMessage };
     }
   };
 
   const register = async (userData) => {
     try {
+      console.log('📝 Attempting registration for:', userData.email);
       const response = await authAPI.register(userData);
 
       // Check if verification is required (new flow)
       if (response.data && response.data.requiresVerification) {
+        console.log('📧 Email verification required for new user');
         return {
           success: true,
           data: response.data,
@@ -124,9 +147,20 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
+      console.log('✅ Registration successful for user:', user.email);
       return { success: true, user };
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error('❌ Registration failed:', error);
+
+      let errorMessage = error.message || 'Registration failed. Please try again.';
+
+      if (error.isTimeout) {
+        errorMessage = 'Server is taking too long to respond. Please wait a moment and try again.';
+      } else if (error.isNetworkError) {
+        errorMessage = 'Cannot connect to server. Please check your internet connection.';
+      }
+
+      return { success: false, error: errorMessage };
     }
   };
 

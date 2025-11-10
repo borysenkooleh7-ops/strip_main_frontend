@@ -9,31 +9,62 @@ class WebSocketService {
   }
 
   connect() {
-    if (this.socket?.connected) return;
+    if (this.socket?.connected) {
+      console.log('🔌 WebSocket already connected');
+      return;
+    }
+
+    console.log('🔌 Connecting to WebSocket:', SOCKET_URL);
 
     this.socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
       autoConnect: true,
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionDelay: 2000, // Wait 2s before reconnecting
+      reconnectionDelayMax: 10000, // Max 10s between reconnection attempts
+      reconnectionAttempts: 10, // Try 10 times
+      timeout: 30000, // 30s connection timeout
       withCredentials: true
     });
 
     this.socket.on('connect', () => {
-      console.log('Socket connected');
+      console.log('✅ WebSocket connected successfully');
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       if (user._id) {
         this.joinRoom(user._id);
       }
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    this.socket.on('disconnect', (reason) => {
+      console.warn('⚠️ WebSocket disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        // Server disconnected, try to reconnect manually
+        console.log('🔄 Attempting manual reconnection...');
+        this.socket.connect();
+      }
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('❌ WebSocket connection error:', {
+        message: error.message,
+        description: 'Backend may be sleeping on Render.com'
+      });
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log(`✅ WebSocket reconnected after ${attemptNumber} attempts`);
+    });
+
+    this.socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`🔄 WebSocket reconnection attempt ${attemptNumber}...`);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('❌ WebSocket reconnection failed after all attempts');
     });
 
     this.socket.on('error', (error) => {
-      console.error('Socket error:', error);
+      console.error('❌ WebSocket error:', error);
     });
   }
 

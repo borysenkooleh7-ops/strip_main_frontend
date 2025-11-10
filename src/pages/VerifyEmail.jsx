@@ -36,12 +36,14 @@ const VerifyEmail = () => {
     setLoading(true);
 
     try {
+      console.log('📧 Verifying email:', verifyEmail);
       const response = await authAPI.verifyEmail({
         email: verifyEmail,
         code: verifyCode
       });
 
       if (response.success) {
+        console.log('✅ Email verified successfully');
         toast.success('Email verified successfully!');
 
         // Auto-login with the returned token and user
@@ -57,10 +59,22 @@ const VerifyEmail = () => {
           navigate('/login');
         }
       } else {
+        console.error('❌ Verification failed:', response.message);
         toast.error(response.message || 'Verification failed');
       }
     } catch (error) {
-      toast.error(error.message || 'Invalid or expired verification code');
+      console.error('❌ Verification error:', error);
+
+      let errorMessage = error.message || 'Invalid or expired verification code';
+
+      // Provide helpful error messages
+      if (error.isTimeout) {
+        errorMessage = 'Server is taking too long. Please wait and try again.';
+      } else if (error.isNetworkError) {
+        errorMessage = 'Cannot connect to server. Please check your connection.';
+      }
+
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -80,15 +94,31 @@ const VerifyEmail = () => {
     setResendLoading(true);
 
     try {
+      console.log('📤 Resending verification code to:', email);
       const response = await authAPI.resendVerification({ email });
 
       if (response.success) {
-        toast.success('Verification code sent! Please check your email.');
+        console.log('✅ Verification code resent successfully');
+        toast.success('Verification code sent! Please check your email (and spam folder).');
       } else {
+        console.error('❌ Failed to resend code:', response.message);
         toast.error(response.message || 'Failed to resend code');
       }
     } catch (error) {
-      toast.error(error.message || 'Failed to resend verification code');
+      console.error('❌ Resend error:', error);
+
+      let errorMessage = error.message || 'Failed to resend verification code';
+
+      // Provide helpful error messages
+      if (errorMessage.includes('Email service')) {
+        errorMessage = 'Email service is not configured on the server. Please contact support.';
+      } else if (error.isTimeout) {
+        errorMessage = 'Server is waking up. Please wait 30 seconds and try again.';
+      } else if (error.isNetworkError) {
+        errorMessage = 'Cannot connect to server. Please check your connection.';
+      }
+
+      toast.error(errorMessage);
     } finally {
       setResendLoading(false);
     }

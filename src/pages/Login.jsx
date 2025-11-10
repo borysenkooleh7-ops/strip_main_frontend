@@ -24,6 +24,7 @@ const Login = () => {
     setLoading(true);
 
     try {
+      console.log('📋 Login form submitted');
       const result = await login(formData.email, formData.password);
 
       if (result.success) {
@@ -33,10 +34,12 @@ const Login = () => {
         toast.error(result.error || 'Please verify your email first');
         navigate(`/verify-email?email=${encodeURIComponent(result.email || formData.email)}`);
       } else {
+        console.error('Login failed with error:', result.error);
         toast.error(result.error || 'Login failed');
       }
     } catch (error) {
-      toast.error('An error occurred during login');
+      console.error('Unexpected error during login:', error);
+      toast.error(error?.message || 'An unexpected error occurred during login');
     } finally {
       setLoading(false);
     }

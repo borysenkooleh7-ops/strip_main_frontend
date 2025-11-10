@@ -1,6 +1,11 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Track request start time for slow backend warnings
+let requestStartTime = null;
+let slowRequestWarningShown = false;
 
 // Create axios instance
 const api = axios.create({
@@ -9,37 +14,127 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important for CORS with credentials
-  timeout: 30000, // 30 second timeout
+  timeout: 90000, // 90 second timeout (to handle Render.com cold starts)
 });
 
-// Request interceptor - add auth token
+// Request interceptor - add auth token and track timing
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Track request start time
+    config.metadata = { startTime: new Date() };
+    requestStartTime = Date.now();
+    slowRequestWarningShown = false;
+
+    // Show warning after 5 seconds if request is still pending
+    setTimeout(() => {
+      if (requestStartTime && !slowRequestWarningShown) {
+        console.warn('⏳ Backend is waking up from sleep (Render.com cold start). This may take 30-60 seconds...');
+        toast.info('Server is waking up, please wait...', {
+          autoClose: false,
+          toastId: 'slow-request'
+        });
+        slowRequestWarningShown = true;
+      }
+    }, 5000);
+
+    console.log(`🚀 API Request: ${config.method.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
+    console.error('❌ Request Setup Error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor - handle errors
+// Response interceptor - handle errors with detailed logging
 api.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    const message = error.response?.data?.message || error.message || 'An error occurred';
+  (response) => {
+    // Clear slow request warning
+    requestStartTime = null;
+    toast.dismiss('slow-request');
 
-    // If 401, logout user
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    // Log response time
+    const duration = new Date() - response.config.metadata.startTime;
+    console.log(`✅ API Response: ${response.config.method.toUpperCase()} ${response.config.url} (${duration}ms)`);
+
+    return response.data;
+  },
+  async (error) => {
+    // Clear slow request warning
+    requestStartTime = null;
+    toast.dismiss('slow-request');
+
+    // Detailed error logging
+    if (error.code === 'ECONNABORTED') {
+      console.error('⏱️ REQUEST TIMEOUT:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        timeout: error.config?.timeout,
+        message: 'The backend took too long to respond. This usually means the Render.com server is cold starting.'
+      });
+
+      // Check if we should retry
+      const shouldRetry = !error.config.__retryCount;
+      if (shouldRetry) {
+        error.config.__retryCount = 1;
+        console.log('🔄 Retrying request...');
+        toast.info('Request timed out. Retrying...', { autoClose: 3000 });
+
+        // Retry the request
+        return api.request(error.config);
+      }
+
+      return Promise.reject({
+        message: 'Connection timeout. The server is taking too long to respond. Please try again.',
+        isTimeout: true
+      });
     }
 
-    return Promise.reject({ message, ...error.response?.data });
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.error('🌐 NETWORK ERROR:', {
+        url: error.config?.url,
+        message: 'Cannot reach the backend server. Check if backend is running.',
+        apiUrl: API_URL
+      });
+      return Promise.reject({
+        message: 'Cannot connect to server. Please check your internet connection or try again later.',
+        isNetworkError: true
+      });
+    }
+
+    // Handle HTTP errors
+    if (error.response) {
+      const status = error.response.status;
+      const message = error.response.data?.message || error.message || 'An error occurred';
+
+      console.error(`❌ HTTP ${status} ERROR:`, {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: status,
+        message: message,
+        data: error.response.data
+      });
+
+      // If 401, logout user
+      if (status === 401) {
+        console.warn('🚪 Unauthorized - Logging out user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+
+      return Promise.reject({ message, ...error.response.data });
+    }
+
+    // Unknown error
+    console.error('❓ UNKNOWN ERROR:', error);
+    const message = error.message || 'An unexpected error occurred';
+    return Promise.reject({ message });
   }
 );
 
